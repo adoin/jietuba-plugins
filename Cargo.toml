@@ -5,10 +5,16 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
+age = "0.12.1"
+anyhow = "1"
 base64 = "0.22.1"
+flate2 = "1"
 rhai = "1.27.0"
 rtf-parser-tt = "0.6.0"
+rusqlite = { version = "0.32", features = ["bundled", "backup", "serialize"] }
 serde_json = { version = "1", features = ["arbitrary_precision", "preserve_order"] }
+tar = "0.4"
+tempfile = "3"
 
 [[bin]]
 name = "json-preview"
@@ -41,3 +47,7 @@ path = "src/source_exclusions.rs"
 [[bin]]
 name = "script-transform"
 path = "src/script_transform.rs"
+
+[[bin]]
+name = "clipboard-backup"
+path = "src/clipboard_backup.rs"

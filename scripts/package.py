@@ -23,10 +23,11 @@ def main():
     for manifest_path in sorted((ROOT / "plugins").glob("*/plugin.json")):
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         output = destination / f"{manifest['id']}-{manifest['version']}.jtbplugin"
-        executable = ROOT / "target" / "release" / manifest["command"]
         with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED, strict_timestamps=False) as package:
             package.write(manifest_path, "plugin.json")
-            package.write(executable, manifest["command"])
+            if "command" in manifest:
+                executable = ROOT / "target" / "release" / manifest["command"]
+                package.write(executable, manifest["command"])
             package.write(ROOT / "LICENSE", "licenses/jietuba-plugins-LICENSE")
             package.writestr("licenses/THIRD_PARTY_LICENSES.txt", notices.encode("utf-8"))
         print(output)
