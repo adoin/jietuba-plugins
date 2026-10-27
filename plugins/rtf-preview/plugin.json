@@ -1,0 +1,1 @@
+{"id":"rtf-preview","name":"RTF Preview","version":"0.2.0","api_version":1,"type":"preview","priority":100,"content_types":["text","custom"],"formats":["Rich Text Format"],"command":"rtf-preview.exe"}

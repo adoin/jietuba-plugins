@@ -1,10 +1,12 @@
 [package]
 name = "jietuba-preview-plugins"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 
 [dependencies]
+base64 = "0.22.1"
+rtf-parser-tt = "0.6.0"
 serde_json = "1"
 
 [[bin]]
@@ -14,3 +16,15 @@ path = "src/json_preview.rs"
 [[bin]]
 name = "markdown-preview"
 path = "src/markdown_preview.rs"
+
+[[bin]]
+name = "rtf-preview"
+path = "src/rtf_preview.rs"
+
+[[bin]]
+name = "format-inspector"
+path = "src/format_inspector.rs"
+
+[[bin]]
+name = "json-pretty"
+path = "src/json_pretty.rs"

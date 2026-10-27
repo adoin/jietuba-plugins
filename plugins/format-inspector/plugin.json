@@ -1,0 +1,1 @@
+{"id":"format-inspector","name":"Format Inspector","version":"0.2.0","api_version":1,"type":"preview","modes":["formats"],"content_types":["text","image","file","custom"],"formats":["*"],"command":"format-inspector.exe"}

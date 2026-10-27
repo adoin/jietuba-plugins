@@ -1,1 +1,1 @@
-{"id":"json-preview","name":"JSON Preview","version":"0.1.0","api_version":1,"type":"preview","content_types":["text"],"command":"json-preview.exe"}
+{"id":"json-preview","name":"JSON Preview","version":"0.2.0","api_version":1,"type":"preview","content_types":["text"],"command":"json-preview.exe"}
