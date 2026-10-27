@@ -16,7 +16,8 @@ def main():
         folder = pathlib.Path(crate["manifest_path"]).parent
         for license_path in sorted(folder.glob("LICENSE*")):
             if license_path.is_file():
-                licenses.append((license_path, f"licenses/{crate['name']}-{crate['version']}/{license_path.name}"))
+                licenses.append((license_path, f"{crate['name']} {crate['version']} / {license_path.name}"))
+    notices = "\n\n".join(f"===== {name} =====\n{path.read_text(encoding='utf-8', errors='replace')}" for path, name in licenses)
     destination = ROOT / "dist"
     destination.mkdir(exist_ok=True)
     for manifest_path in sorted((ROOT / "plugins").glob("*/plugin.json")):
@@ -27,8 +28,7 @@ def main():
             package.write(manifest_path, "plugin.json")
             package.write(executable, manifest["command"])
             package.write(ROOT / "LICENSE", "licenses/jietuba-plugins-LICENSE")
-            for source, target in licenses:
-                package.write(source, target)
+            package.writestr("licenses/THIRD_PARTY_LICENSES.txt", notices.encode("utf-8"))
         print(output)
 
 if __name__ == "__main__":

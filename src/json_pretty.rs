@@ -41,4 +41,12 @@ mod tests {
             json!({"api_version":1,"type":"action","content_type":"text","content":"not json"});
         assert_eq!(action(bad.to_string().as_bytes())["supported"], false);
     }
+    #[test]
+    fn preserves_large_numbers_and_key_order() {
+        let request = json!({"api_version":1,"type":"action","content_type":"text","content":"{\"z\":123456789012345678901234567890,\"a\":1}"});
+        let output = action(request.to_string().as_bytes());
+        let text = output["content"].as_str().unwrap();
+        assert!(text.contains("123456789012345678901234567890"));
+        assert!(text.find("\"z\"").unwrap() < text.find("\"a\"").unwrap());
+    }
 }

@@ -31,7 +31,9 @@ fn preview(input: &[u8]) -> Value {
         let raw = STANDARD
             .decode(request["formats_base64"]["Rich Text Format"].as_str()?)
             .ok()?;
-        let doc = RtfDocument::from_bytes(&raw).ok()?;
+        // Win32 clipboard memory commonly includes a terminating NUL.
+        let end = raw.iter().rposition(|byte| *byte != 0)? + 1;
+        let doc = RtfDocument::from_bytes(&raw[..end]).ok()?;
         let mut html = String::from("<html><body>");
         for block in &doc.body {
             if block.painter.hidden {
@@ -128,5 +130,14 @@ mod tests {
         let request = json!({"api_version":1,"type":"preview","content_type":"text","formats_base64":{"Rich Text Format":STANDARD.encode(rtf)}});
         let result = preview(request.to_string().as_bytes());
         assert!(result["content"].as_str().unwrap().contains("中文"));
+    }
+    #[test]
+    fn accepts_a_nul_terminated_windows_clipboard_block() {
+        let request = json!({"api_version":1,"type":"preview","content_type":"text","formats_base64":{"Rich Text Format":STANDARD.encode(b"{\\rtf1 {\\b rich}}\0")}});
+        let result = preview(request.to_string().as_bytes());
+        assert!(result["content"]
+            .as_str()
+            .unwrap()
+            .contains("font-weight:bold"));
     }
 }

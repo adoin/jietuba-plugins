@@ -1,0 +1,1 @@
+{"id":"secret-filter","name":"Sensitive Content Protection","name_i18n":{"zh":"敏感内容保护","zh_TW":"敏感內容保護","ja":"機密情報の保護","ko":"민감 정보 보호"},"version":"0.2.0","api_version":1,"type":"capture_filter","content_types":["text"],"command":"secret-filter.exe"}
