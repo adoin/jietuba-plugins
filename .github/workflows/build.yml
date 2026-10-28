@@ -1,10 +1,7 @@
-name: Build plugins
+name: Publish plugins
 on:
   push:
-    branches: [main]
     tags: ['v*']
-  pull_request:
-  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -16,6 +13,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - run: python -m unittest discover -s scripts -p test_check_release_version.py
+      - name: Validate release version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python scripts/check_release_version.py $env:RELEASE_TAG
       - run: cargo test --locked
       - run: python scripts/package.py
       - uses: actions/upload-artifact@v4
@@ -23,7 +25,7 @@ jobs:
           name: jietuba-plugins-windows-x64
           path: dist/*.jtbplugin
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
     permissions:
