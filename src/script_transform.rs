@@ -3,6 +3,7 @@ use rhai::{
     Engine, ImmutableString, Scope,
 };
 use serde_json::{json, Value};
+mod protocol;
 use std::{
     fs,
     io::{self, Read, Write},
@@ -69,23 +70,16 @@ fn main() -> io::Result<()> {
         .read_to_end(&mut input)?;
     let request: Value = serde_json::from_slice(&input)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-    if request["api_version"] != 1
-        || request["type"] != "action"
-        || request["content_type"] != "text"
-    {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "invalid request",
-        ));
-    }
+    let content = protocol::command(&request, "transform", "text")
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "invalid request"))?;
     let result = transform(
-        request["content"].as_str().unwrap_or(""),
-        request["source_app"].as_str().unwrap_or(""),
+        content.as_str().unwrap_or(""),
+        request["context"]["source_app"].as_str().unwrap_or(""),
         &script_from_config()?,
     );
     let response = result
-        .map(|content| json!({"api_version":1,"kind":"text","content":content}))
-        .unwrap_or_else(|| json!({"api_version":1,"supported":false}));
+        .map(|content| protocol::success("text", json!(content)))
+        .unwrap_or_else(protocol::declined);
     serde_json::to_writer(io::stdout().lock(), &response)?;
     io::stdout().flush()
 }

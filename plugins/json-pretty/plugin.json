@@ -1,1 +1,27 @@
-{"id":"json-pretty","name":"Format JSON and copy","name_i18n":{"zh":"格式化 JSON 并复制","zh_TW":"格式化 JSON 並複製","ja":"JSON を整形してコピー","ko":"JSON 서식 지정 후 복사"},"version":"0.2.0","api_version":1,"type":"action","content_types":["text"],"command":"json-pretty.exe"}
+{
+  "id": "json-pretty",
+  "name": "Format JSON and copy",
+  "name_i18n": {
+    "zh": "格式化 JSON 并复制",
+    "zh_TW": "格式化 JSON 並複製",
+    "ja": "JSON を整形してコピー",
+    "ko": "JSON 서식 지정 후 복사"
+  },
+  "version": "0.4.0",
+  "api_version": 2,
+  "type": "extension",
+  "command": "json-pretty.exe",
+  "contributes": {
+    "commands": [
+      "transform"
+    ],
+    "clipboard": {
+      "action": {
+        "command": "transform",
+        "content_types": [
+          "text"
+        ]
+      }
+    }
+  }
+}

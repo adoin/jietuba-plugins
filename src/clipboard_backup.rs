@@ -3,6 +3,7 @@ use anyhow::{bail, Context, Result};
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use rusqlite::{backup::Backup, Connection, DatabaseName, OpenFlags};
 use serde_json::{json, Value};
+mod protocol;
 use std::{
     collections::HashSet,
     fs::{self, File},
@@ -289,9 +290,7 @@ fn required_path(request: &Value, key: &str) -> Result<PathBuf> {
 }
 
 fn run(request: &Value) -> Result<()> {
-    if request["api_version"] != 1 || request["type"] != "backup" {
-        bail!("invalid_request");
-    }
+    let request = protocol::command(request, "backup", "backup").context("invalid_request")?;
     let password = request["password"].as_str().context("invalid_request")?;
     match request["operation"].as_str() {
         Some("export") => export(
@@ -318,7 +317,7 @@ fn main() -> io::Result<()> {
         .map_err(anyhow::Error::from)
         .and_then(|request| run(&request));
     let response = match result {
-        Ok(()) => json!({"api_version":1,"ok":true}),
+        Ok(()) => json!({"api_version":2,"ok":true}),
         Err(error) => {
             let message = error.to_string();
             let code = match message.as_str() {
@@ -326,7 +325,7 @@ fn main() -> io::Result<()> {
                 | "destination_exists" => message,
                 _ => "failed".to_string(),
             };
-            json!({"api_version":1,"ok":false,"error":code})
+            json!({"api_version":2,"ok":false,"error":code})
         }
     };
     serde_json::to_writer(io::stdout().lock(), &response)?;

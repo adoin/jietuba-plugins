@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+mod protocol;
 use std::{
     fs,
     io::{self, Read, Write},
@@ -6,10 +7,7 @@ use std::{
 };
 
 fn markdown(request: &Value) -> Option<String> {
-    if request["api_version"] != 1
-        || request["type"] != "preview"
-        || request["content_type"] != "file"
-    {
+    if request["content_type"] != "file" {
         return None;
     }
     let paths = request["paths"].as_array()?;
@@ -47,9 +45,9 @@ fn main() -> io::Result<()> {
         .read_to_end(&mut input)?;
     let response = serde_json::from_slice::<Value>(&input)
         .ok()
-        .and_then(|request| markdown(&request))
-        .map(|content| json!({"api_version": 1, "kind": "markdown", "content": content}))
-        .unwrap_or_else(|| json!({"api_version": 1, "supported": false}));
+        .and_then(|request| protocol::command(&request, "render", "clipboard").and_then(markdown))
+        .map(|content| protocol::success("preview", json!({"kind":"markdown","content":content})))
+        .unwrap_or_else(protocol::declined);
     serde_json::to_writer(io::stdout().lock(), &response)?;
     io::stdout().flush()
 }
@@ -60,8 +58,7 @@ mod tests {
     #[test]
     fn rejects_network_and_non_markdown_files() {
         for path in ["\\\\server\\share\\doc.md", "C:\\note.txt"] {
-            let request =
-                json!({"api_version":1,"type":"preview","content_type":"file","paths":[path]});
+            let request = json!({"content_type":"file","paths":[path]});
             assert!(markdown(&request).is_none());
         }
     }

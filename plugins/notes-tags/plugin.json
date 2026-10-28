@@ -1,1 +1,49 @@
-{"id":"notes-tags","name":"Notes and Tags","name_i18n":{"zh":"备注与标签","zh_TW":"備註與標籤","ja":"メモとタグ","ko":"메모와 태그"},"version":"0.2.0","api_version":1,"type":"metadata","content_types":["text","image","file","custom"],"fields":[{"key":"note","type":"multiline","label":"Note","label_i18n":{"zh":"备注","zh_TW":"備註","ja":"メモ","ko":"메모"}},{"key":"tags","type":"line","label":"Tags (comma-separated)","label_i18n":{"zh":"标签（用逗号分隔）","zh_TW":"標籤（以逗號分隔）","ja":"タグ（カンマ区切り）","ko":"태그 (쉼표로 구분)"}}]}
+{
+  "id": "notes-tags",
+  "name": "Notes and Tags",
+  "name_i18n": {
+    "zh": "备注与标签",
+    "zh_TW": "備註與標籤",
+    "ja": "メモとタグ",
+    "ko": "메모와 태그"
+  },
+  "version": "0.4.0",
+  "api_version": 2,
+  "type": "extension",
+  "contributes": {
+    "clipboard": {
+      "metadata": {
+        "content_types": [
+          "text",
+          "image",
+          "file",
+          "custom"
+        ],
+        "fields": [
+          {
+            "key": "note",
+            "type": "multiline",
+            "label": "Note",
+            "label_i18n": {
+              "zh": "备注",
+              "zh_TW": "備註",
+              "ja": "メモ",
+              "ko": "메모"
+            }
+          },
+          {
+            "key": "tags",
+            "type": "line",
+            "label": "Tags (comma-separated)",
+            "label_i18n": {
+              "zh": "标签（用逗号分隔）",
+              "zh_TW": "標籤（以逗號分隔）",
+              "ja": "タグ（カンマ区切り）",
+              "ko": "태그 (쉼표로 구분)"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

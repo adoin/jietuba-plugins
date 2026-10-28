@@ -5,7 +5,7 @@ use std::io::{self, Read, Write};
 fn respond(input: &[u8]) -> Value {
     let result = (|| {
         let request: Value = serde_json::from_slice(input).ok()?;
-        if request["api_version"] != 1
+        if request["api_version"] != 2
             || request["type"] != "extension"
             || request["event"] != "command"
         {
@@ -32,9 +32,9 @@ fn respond(input: &[u8]) -> Value {
             }
             _ => return None,
         };
-        Some(json!({"api_version":1,"ok":true,"payload":{"kind":"text","data":text}}))
+        Some(json!({"api_version":2,"ok":true,"payload":{"kind":"text","data":text}}))
     })();
-    result.unwrap_or_else(|| json!({"api_version":1,"ok":false}))
+    result.unwrap_or_else(|| json!({"api_version":2,"ok":false}))
 }
 
 fn main() -> io::Result<()> {
@@ -52,10 +52,10 @@ mod tests {
     #[test]
     fn chains_png_dimensions_into_formatted_text() {
         let png = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\x07\x80\0\0\x048";
-        let req = json!({"api_version":1,"type":"extension","event":"command","command":"dimensions", "payload":{"kind":"image","data":STANDARD.encode(png)}});
+        let req = json!({"api_version":2,"type":"extension","event":"command","command":"dimensions", "payload":{"kind":"image","data":STANDARD.encode(png)}});
         let first = respond(req.to_string().as_bytes());
         assert_eq!(first["payload"]["data"], "1920x1080");
-        let second = json!({"api_version":1,"type":"extension","event":"command","command":"format", "payload":first["payload"]});
+        let second = json!({"api_version":2,"type":"extension","event":"command","command":"format", "payload":first["payload"]});
         assert_eq!(
             respond(second.to_string().as_bytes())["payload"]["data"],
             "1920 × 1080 px"

@@ -1,6 +1,7 @@
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use serde_json::{json, Value};
 use std::io::{self, Read, Write};
+mod protocol;
 
 fn sensitive(text: &str) -> bool {
     if [
@@ -60,10 +61,12 @@ fn sensitive(text: &str) -> bool {
 fn filter(input: &[u8]) -> Value {
     let allow = serde_json::from_slice::<Value>(input)
         .ok()
-        .filter(|v| v["api_version"] == 1 && v["type"] == "capture_filter")
-        .and_then(|v| v["content"].as_str().map(|s| !sensitive(s)))
+        .and_then(|v| {
+            protocol::hook(&v, "clipboard.before_capture", "clipboard")
+                .and_then(|data| data["content"].as_str().map(|s| !sensitive(s)))
+        })
         .unwrap_or(false);
-    json!({"api_version":1,"allow":allow})
+    protocol::success("decision", json!(allow))
 }
 
 fn main() -> io::Result<()> {
@@ -90,8 +93,8 @@ mod tests {
     }
     #[test]
     fn invalid_request_fails_closed() {
-        assert_eq!(filter(b"not json")["allow"], false);
-        let good = json!({"api_version":1,"type":"capture_filter","content":"ordinary text"});
-        assert_eq!(filter(good.to_string().as_bytes())["allow"], true);
+        assert_eq!(filter(b"not json")["payload"]["data"], false);
+        let good = json!({"api_version":2,"type":"extension","event":"clipboard.before_capture","command":"","payload":{"kind":"clipboard","data":{"content":"ordinary text"}}});
+        assert_eq!(filter(good.to_string().as_bytes())["payload"]["data"], true);
     }
 }

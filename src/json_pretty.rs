@@ -1,20 +1,16 @@
 use serde_json::{json, Value};
 use std::io::{self, Read, Write};
+mod protocol;
 
 fn action(input: &[u8]) -> Value {
     let result = (|| {
-        let request: Value = serde_json::from_slice(input).ok()?;
-        if request["api_version"] != 1
-            || request["type"] != "action"
-            || request["content_type"] != "text"
-        {
-            return None;
-        }
-        let value: Value = serde_json::from_str(request["content"].as_str()?).ok()?;
+        let envelope: Value = serde_json::from_slice(input).ok()?;
+        let text = protocol::command(&envelope, "transform", "text")?.as_str()?;
+        let value: Value = serde_json::from_str(text).ok()?;
         let content = serde_json::to_string_pretty(&value).ok()?;
-        Some(json!({"api_version":1,"kind":"text","content":content}))
+        Some(protocol::success("text", json!(content)))
     })();
-    result.unwrap_or_else(|| json!({"api_version":1,"supported":false}))
+    result.unwrap_or_else(protocol::declined)
 }
 
 fn main() -> io::Result<()> {
@@ -31,22 +27,35 @@ mod tests {
     use super::*;
     #[test]
     fn formats_json_and_rejects_invalid_text() {
-        let request =
-            json!({"api_version":1,"type":"action","content_type":"text","content":"{\"a\":1}"});
-        assert!(action(request.to_string().as_bytes())["content"]
+        let request = protocol::test_command("transform", "text", json!("{\"a\":1}"));
+        assert!(action(request.to_string().as_bytes())["payload"]["data"]
             .as_str()
             .unwrap()
             .contains("\"a\": 1"));
-        let bad =
-            json!({"api_version":1,"type":"action","content_type":"text","content":"not json"});
-        assert_eq!(action(bad.to_string().as_bytes())["supported"], false);
+        let bad = protocol::test_command("transform", "text", json!("not json"));
+        assert_eq!(
+            action(bad.to_string().as_bytes())["payload"]["kind"],
+            "none"
+        );
     }
     #[test]
     fn preserves_large_numbers_and_key_order() {
-        let request = json!({"api_version":1,"type":"action","content_type":"text","content":"{\"z\":123456789012345678901234567890,\"a\":1}"});
+        let request = protocol::test_command(
+            "transform",
+            "text",
+            json!("{\"z\":123456789012345678901234567890,\"a\":1}"),
+        );
         let output = action(request.to_string().as_bytes());
-        let text = output["content"].as_str().unwrap();
+        let text = output["payload"]["data"].as_str().unwrap();
         assert!(text.contains("123456789012345678901234567890"));
         assert!(text.find("\"z\"").unwrap() < text.find("\"a\"").unwrap());
+    }
+    #[test]
+    fn legacy_requests_are_not_accepted() {
+        let old = json!({"api_version":1,"type":"action","content_type":"text","content":"{}"});
+        assert_eq!(
+            action(old.to_string().as_bytes())["payload"]["kind"],
+            "none"
+        );
     }
 }

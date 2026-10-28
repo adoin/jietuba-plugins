@@ -1,1 +1,21 @@
-{"id":"json-preview","name":"JSON Preview","version":"0.2.0","api_version":1,"type":"preview","content_types":["text"],"command":"json-preview.exe"}
+{
+  "id": "json-preview",
+  "name": "JSON Preview",
+  "version": "0.4.0",
+  "api_version": 2,
+  "type": "extension",
+  "command": "json-preview.exe",
+  "contributes": {
+    "commands": [
+      "render"
+    ],
+    "clipboard": {
+      "preview": {
+        "command": "render",
+        "content_types": [
+          "text"
+        ]
+      }
+    }
+  }
+}

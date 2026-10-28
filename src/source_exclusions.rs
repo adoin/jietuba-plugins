@@ -1,4 +1,5 @@
 use serde_json::{json, Value};
+mod protocol;
 use std::{
     fs,
     io::{self, Read, Write},
@@ -59,13 +60,15 @@ fn main() -> io::Result<()> {
         .read_to_end(&mut input)?;
     let request: Value = serde_json::from_slice(&input)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-    if request["api_version"] != 1 || request["type"] != "capture_filter" {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "invalid request",
-        ));
-    }
-    let response = json!({"api_version":1,"allow":allowed(request["source_app"].as_str().unwrap_or(""), &read_config()?)});
+    let data = protocol::hook(&request, "clipboard.before_capture", "clipboard")
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "invalid request"))?;
+    let response = protocol::success(
+        "decision",
+        json!(allowed(
+            data["source_app"].as_str().unwrap_or(""),
+            &read_config()?
+        )),
+    );
     serde_json::to_writer(io::stdout().lock(), &response)?;
     io::stdout().flush()
 }

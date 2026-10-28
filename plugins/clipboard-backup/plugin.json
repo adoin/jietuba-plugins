@@ -1,1 +1,24 @@
-{"id":"clipboard-backup","name":"Encrypted Clipboard Backup","name_i18n":{"zh":"剪贴板加密备份","zh_TW":"剪貼簿加密備份","ja":"クリップボードの暗号化バックアップ","ko":"클립보드 암호화 백업"},"version":"0.2.0","api_version":1,"type":"backup","command":"clipboard-backup.exe"}
+{
+  "id": "clipboard-backup",
+  "name": "Encrypted Clipboard Backup",
+  "name_i18n": {
+    "zh": "剪贴板加密备份",
+    "zh_TW": "剪貼簿加密備份",
+    "ja": "クリップボードの暗号化バックアップ",
+    "ko": "클립보드 암호화 백업"
+  },
+  "version": "0.4.0",
+  "api_version": 2,
+  "type": "extension",
+  "command": "clipboard-backup.exe",
+  "contributes": {
+    "commands": [
+      "backup"
+    ],
+    "clipboard": {
+      "backup": {
+        "command": "backup"
+      }
+    }
+  }
+}

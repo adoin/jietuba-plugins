@@ -2,6 +2,7 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use rtf_parser_tt::RtfDocument;
 use serde_json::{json, Value};
 use std::io::{self, Read, Write};
+mod protocol;
 
 fn escape(text: &str) -> String {
     text.replace('&', "&amp;")
@@ -14,11 +15,9 @@ fn escape(text: &str) -> String {
 
 fn preview(input: &[u8]) -> Value {
     let result = (|| {
-        let request: Value = serde_json::from_slice(input).ok()?;
-        if request["api_version"] != 1
-            || request["type"] != "preview"
-            || (request["content_type"] != "text" && request["content_type"] != "custom")
-        {
+        let envelope: Value = serde_json::from_slice(input).ok()?;
+        let request = protocol::command(&envelope, "render", "clipboard")?;
+        if request["content_type"] != "text" && request["content_type"] != "custom" {
             return None;
         }
         // The host's native HTML preview retains more structure than the RTF conversion.
@@ -76,9 +75,12 @@ fn preview(input: &[u8]) -> Value {
             ));
         }
         html.push_str("</body></html>");
-        Some(json!({"api_version":1,"kind":"html","content":html}))
+        Some(protocol::success(
+            "preview",
+            json!({"kind":"html","content":html}),
+        ))
     })();
-    result.unwrap_or_else(|| json!({"api_version":1,"supported":false}))
+    result.unwrap_or_else(protocol::declined)
 }
 
 fn main() -> io::Result<()> {
@@ -96,30 +98,52 @@ mod tests {
     #[test]
     fn renders_rich_unicode_and_escapes_markup() {
         let rtf = br"{\rtf1\ansi normal {\b bold} \u20013? <tag>\par}";
-        let request = json!({"api_version":1,"type":"preview","content_type":"text","formats_base64":{"Rich Text Format": STANDARD.encode(rtf)}});
+        let request = protocol::test_command(
+            "render",
+            "clipboard",
+            json!({"content_type":"text","formats_base64":{"Rich Text Format": STANDARD.encode(rtf)}}),
+        );
         let result = preview(request.to_string().as_bytes());
-        assert_eq!(result["kind"], "html");
-        let html = result["content"].as_str().unwrap();
+        assert_eq!(result["payload"]["data"]["kind"], "html");
+        let html = result["payload"]["data"]["content"].as_str().unwrap();
         assert!(html.contains("font-weight:bold"));
         assert!(html.contains('中'));
         assert!(html.contains("&lt;tag&gt;"));
     }
     #[test]
     fn declines_missing_or_invalid_rtf() {
-        let request = json!({"api_version":1,"type":"preview","content_type":"text","formats_base64":{"Rich Text Format": STANDARD.encode("not rtf")}});
-        assert_eq!(preview(request.to_string().as_bytes())["supported"], false);
+        let request = protocol::test_command(
+            "render",
+            "clipboard",
+            json!({"content_type":"text","formats_base64":{"Rich Text Format": STANDARD.encode("not rtf")}}),
+        );
+        assert_eq!(
+            preview(request.to_string().as_bytes())["payload"]["kind"],
+            "none"
+        );
     }
     #[test]
     fn leaves_existing_html_to_the_host() {
-        let request = json!({"api_version":1,"type":"preview","content_type":"text","html":"<b>already rich</b>","formats_base64":{"Rich Text Format": STANDARD.encode(br"{\rtf1 text}")}});
-        assert_eq!(preview(request.to_string().as_bytes())["supported"], false);
+        let request = protocol::test_command(
+            "render",
+            "clipboard",
+            json!({"content_type":"text","html":"<b>already rich</b>","formats_base64":{"Rich Text Format": STANDARD.encode(br"{\rtf1 text}")}}),
+        );
+        assert_eq!(
+            preview(request.to_string().as_bytes())["payload"]["kind"],
+            "none"
+        );
     }
     #[test]
     fn rtf_only_clipboard_item_is_supported() {
-        let request = json!({"api_version":1,"type":"preview","content_type":"custom","formats_base64":{"Rich Text Format": STANDARD.encode(br"{\rtf1 {\b bold}}")}});
+        let request = protocol::test_command(
+            "render",
+            "clipboard",
+            json!({"content_type":"custom","formats_base64":{"Rich Text Format": STANDARD.encode(br"{\rtf1 {\b bold}}")}}),
+        );
         let result = preview(request.to_string().as_bytes());
-        assert_eq!(result["kind"], "html");
-        assert!(result["content"]
+        assert_eq!(result["payload"]["data"]["kind"], "html");
+        assert!(result["payload"]["data"]["content"]
             .as_str()
             .unwrap()
             .contains("font-weight:bold"));
@@ -127,15 +151,26 @@ mod tests {
     #[test]
     fn decodes_simplified_chinese_code_page() {
         let rtf = b"{\\rtf1\\ansi\\ansicpg936 \\'d6\\'d0\\'ce\\'c4}";
-        let request = json!({"api_version":1,"type":"preview","content_type":"text","formats_base64":{"Rich Text Format":STANDARD.encode(rtf)}});
+        let request = protocol::test_command(
+            "render",
+            "clipboard",
+            json!({"content_type":"text","formats_base64":{"Rich Text Format":STANDARD.encode(rtf)}}),
+        );
         let result = preview(request.to_string().as_bytes());
-        assert!(result["content"].as_str().unwrap().contains("中文"));
+        assert!(result["payload"]["data"]["content"]
+            .as_str()
+            .unwrap()
+            .contains("中文"));
     }
     #[test]
     fn accepts_a_nul_terminated_windows_clipboard_block() {
-        let request = json!({"api_version":1,"type":"preview","content_type":"text","formats_base64":{"Rich Text Format":STANDARD.encode(b"{\\rtf1 {\\b rich}}\0")}});
+        let request = protocol::test_command(
+            "render",
+            "clipboard",
+            json!({"content_type":"text","formats_base64":{"Rich Text Format":STANDARD.encode(b"{\\rtf1 {\\b rich}}\0")}}),
+        );
         let result = preview(request.to_string().as_bytes());
-        assert!(result["content"]
+        assert!(result["payload"]["data"]["content"]
             .as_str()
             .unwrap()
             .contains("font-weight:bold"));

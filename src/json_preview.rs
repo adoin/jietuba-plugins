@@ -1,14 +1,12 @@
 use serde_json::{json, Value};
 use std::io::{self, Read, Write};
+mod protocol;
 
 fn preview(input: &[u8]) -> Value {
     serde_json::from_slice::<Value>(input)
         .ok()
-        .filter(|request| {
-            request["api_version"] == 1
-                && request["type"] == "preview"
-                && request["content_type"] == "text"
-        })
+        .and_then(|envelope| protocol::command(&envelope, "render", "clipboard").cloned())
+        .filter(|request| request["content_type"] == "text")
         .and_then(|request| {
             request["content"]
                 .as_str()
@@ -16,8 +14,8 @@ fn preview(input: &[u8]) -> Value {
         })
         .filter(|value| value.is_object() || value.is_array())
         .and_then(|value| serde_json::to_string_pretty(&value).ok())
-        .map(|content| json!({"api_version": 1, "kind": "text", "content": content}))
-        .unwrap_or_else(|| json!({"api_version": 1, "supported": false}))
+        .map(|content| protocol::success("preview", json!({"kind":"text","content":content})))
+        .unwrap_or_else(protocol::declined)
 }
 
 fn main() -> io::Result<()> {
@@ -35,14 +33,25 @@ mod tests {
     use super::*;
     #[test]
     fn formats_json_and_declines_other_text() {
-        let input = json!({"api_version": 1, "type": "preview", "content_type": "text", "content": "{\"a\":1}"});
+        let input = protocol::test_command(
+            "render",
+            "clipboard",
+            json!({"content_type": "text", "content": "{\"a\":1}"}),
+        );
         let result = preview(input.to_string().as_bytes());
-        assert_eq!(result["kind"], "text");
-        assert!(result["content"]
+        assert_eq!(result["payload"]["data"]["kind"], "text");
+        assert!(result["payload"]["data"]["content"]
             .as_str()
             .unwrap()
             .contains("\n  \"a\": 1\n"));
-        let other = json!({"api_version": 1, "type": "preview", "content_type": "text", "content": "hello"});
-        assert_eq!(preview(other.to_string().as_bytes())["supported"], false);
+        let other = protocol::test_command(
+            "render",
+            "clipboard",
+            json!({"content_type": "text", "content": "hello"}),
+        );
+        assert_eq!(
+            preview(other.to_string().as_bytes())["payload"]["kind"],
+            "none"
+        );
     }
 }
