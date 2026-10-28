@@ -10,6 +10,10 @@ python scripts/package.py
 
 生成的 `.jtbplugin` 文件位于 `dist/`。在截图吧剪贴板窗口的设置菜单选择“安装插件”，选择对应文件；安装后打开条目详情预览即可使用。插件是本机可执行程序，只有信任的插件才应该安装。
 
+截图吧系统托盘菜单同样提供安装和管理入口。`screenshot-image-info` 和 `screenshot-dimensions` 是程序级扩展示例：同时安装后，在截图工具栏的“…”中选择“复制截图尺寸”，依次运行两个插件，把选区尺寸格式化后复制。可在工具栏调整界面将按钮移到工具栏上。
+
+程序级扩展使用 `type: "extension"` 和 `contributes` 声明事件钩子、命令及工具栏栏位；`pipeline` 中列出插件 ID 和命令，上一命令的图片或文本输出成为下一命令的输入。截图事件包括 `screenshot.started`、`screenshot.selection_confirmed`、`screenshot.before_export`、`screenshot.exported`、`screenshot.cancelled` 和 `screenshot.ended`。完整协议、事件边界及大小限制见截图吧主项目的 `docs/plugins.md`。
+
 ## 插件协议 v1
 
 包是 ZIP 文件，根目录包含 `plugin.json`；可执行插件还包含清单中指定的 Windows 可执行文件，声明式元数据插件无需可执行文件。预览插件清单包含 `id`、`name`、`version`、`api_version: 1`、`type: "preview"`、`content_types`（`text`、`image`、`file` 或 `custom`）和相对 `command`。插件通过标准输入接收一个 UTF-8 JSON 对象，字段包括 `api_version`、`type`、`content_type`、`sub_kind`、`content`、可选 `html` 和 `paths`；图片大小不超过 4 MiB 时包含 `image_base64`。

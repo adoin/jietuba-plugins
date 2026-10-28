@@ -28,6 +28,15 @@ def main():
             if "command" in manifest:
                 executable = ROOT / "target" / "release" / manifest["command"]
                 package.write(executable, manifest["command"])
+            icons = set()
+            for entry in manifest.get("contributes", {}).get("toolbar", []):
+                if icon := entry.get("icon"):
+                    path = pathlib.PurePosixPath(icon)
+                    if path.is_absolute() or ".." in path.parts or "\\" in icon or ":" in icon:
+                        raise ValueError(f"Unsafe icon path: {icon}")
+                    if icon not in icons:
+                        package.write(manifest_path.parent.joinpath(*path.parts), icon)
+                        icons.add(icon)
             package.write(ROOT / "LICENSE", "licenses/jietuba-plugins-LICENSE")
             package.writestr("licenses/THIRD_PARTY_LICENSES.txt", notices.encode("utf-8"))
         print(output)

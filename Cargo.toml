@@ -51,3 +51,7 @@ path = "src/script_transform.rs"
 [[bin]]
 name = "clipboard-backup"
 path = "src/clipboard_backup.rs"
+
+[[bin]]
+name = "screenshot-extension"
+path = "src/screenshot_extension.rs"
